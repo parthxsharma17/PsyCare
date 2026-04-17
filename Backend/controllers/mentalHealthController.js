@@ -3,6 +3,127 @@ const User = require('../models/User');
 const Profile = require('../models/Profile');
 const sendEmail = require('../utils/emailService');
 
+const SEVERITY_ALIASES = {
+  none: 'normal',
+  minimal: 'minimal',
+  mild: 'mild',
+  moderate: 'moderate',
+  severe: 'severe',
+  extreme: 'severe',
+  'very severe': 'severe',
+  'extremely severe': 'severe'
+};
+
+const LIFESTYLE_ALIASES = {
+  exerciseFrequency: {
+    none: 'never',
+    no: 'never',
+    weekly: 'sometimes',
+    regular: 'often',
+    everyday: 'daily'
+  },
+  smokingStatus: {
+    'never smoked': 'never',
+    'non smoker': 'never',
+    'non-smoker': 'never',
+    'ex smoker': 'former',
+    'ex-smoker': 'former',
+    social: 'occasional',
+    'social smoker': 'occasional'
+  },
+  alcoholConsumption: {
+    none: 'never',
+    social: 'occasionally',
+    socially: 'occasionally',
+    often: 'regularly',
+    regular: 'regularly',
+    everyday: 'daily'
+  }
+};
+
+const normalizeNumber = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsedValue = Number(value);
+    if (Number.isFinite(parsedValue)) {
+      return parsedValue;
+    }
+  }
+
+  return null;
+};
+
+const normalizeEnumValue = (value, allowedValues, aliases = {}) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalizedValue = value.trim().toLowerCase();
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const mappedValue = aliases[normalizedValue] || normalizedValue;
+  return allowedValues.includes(mappedValue) ? mappedValue : null;
+};
+
+const normalizeSeverity = (value, allowedValues) =>
+  normalizeEnumValue(value, allowedValues, SEVERITY_ALIASES);
+
+const normalizeLifestyle = (lifestyle = {}) => {
+  const normalizedLifestyle = {};
+  const allowedEnums = {
+    exerciseFrequency: ['never', 'rarely', 'sometimes', 'often', 'daily'],
+    smokingStatus: ['never', 'former', 'current', 'occasional'],
+    alcoholConsumption: ['never', 'rarely', 'occasionally', 'regularly', 'daily']
+  };
+
+  Object.entries(allowedEnums).forEach(([field, allowedValues]) => {
+    const normalizedField = normalizeEnumValue(
+      lifestyle[field],
+      allowedValues,
+      LIFESTYLE_ALIASES[field]
+    );
+
+    if (normalizedField) {
+      normalizedLifestyle[field] = normalizedField;
+    }
+  });
+
+  const parsedScreenTime = normalizeNumber(lifestyle.screenTime);
+  if (parsedScreenTime !== null) {
+    normalizedLifestyle.screenTime = parsedScreenTime;
+  }
+
+  if (typeof lifestyle.chronicConditions === 'string') {
+    normalizedLifestyle.chronicConditions = lifestyle.chronicConditions.trim();
+  }
+
+  if (typeof lifestyle.medications === 'string') {
+    normalizedLifestyle.medications = lifestyle.medications.trim();
+  }
+
+  return normalizedLifestyle;
+};
+
+const normalizeAssessmentScore = (assessment, allowedSeverities) => {
+  if (!assessment || typeof assessment !== 'object') {
+    return null;
+  }
+
+  const score = normalizeNumber(assessment.score);
+  const severity = normalizeSeverity(assessment.severity, allowedSeverities);
+
+  if (score === null || !severity) {
+    return null;
+  }
+
+  return { score, severity };
+};
+
 // @desc    Analyze mental health data and generate report
 // @route   POST /api/mental-health/analyze
 // @access  Private
@@ -18,17 +139,29 @@ const analyzeMentalHealth = async (req, res) => {
       });
     }
     
-    // Validate vitals data
-    if (!vitals.systolic || !vitals.diastolic || !vitals.heartRate || !vitals.sleepDuration) {
+    // Validate and normalize vitals data
+    let processedVitals = {
+      systolic: normalizeNumber(vitals.systolic),
+      diastolic: normalizeNumber(vitals.diastolic),
+      heartRate: normalizeNumber(vitals.heartRate),
+      sleepDuration: normalizeNumber(vitals.sleepDuration),
+      temperature: normalizeNumber(vitals.temperature)
+    };
+
+    if (
+      processedVitals.systolic === null ||
+      processedVitals.diastolic === null ||
+      processedVitals.heartRate === null ||
+      processedVitals.sleepDuration === null
+    ) {
       return res.status(400).json({
         success: false,
         message: 'Missing required vital signs data'
       });
     }
-    
+
     // Process and validate temperature (convert Fahrenheit to Celsius if needed)
-    let processedVitals = { ...vitals };
-    if (processedVitals.temperature) {
+    if (processedVitals.temperature !== null) {
       // If temperature seems to be in Fahrenheit (> 50), convert to Celsius
       if (processedVitals.temperature > 50) {
         processedVitals.temperature = ((processedVitals.temperature - 32) * 5) / 9;
@@ -42,46 +175,64 @@ const analyzeMentalHealth = async (req, res) => {
           message: 'Temperature value is out of valid range'
         });
       }
+    } else {
+      delete processedVitals.temperature;
     }
-    
-    // Validate DASS-21 scores
-    if (!dass21.depression || !dass21.anxiety || !dass21.stress) {
+
+    // Validate and normalize DASS-21 scores
+    const normalizedDass21 = {
+      depression: normalizeAssessmentScore(dass21.depression, ['normal', 'mild', 'moderate', 'severe']),
+      anxiety: normalizeAssessmentScore(dass21.anxiety, ['normal', 'mild', 'moderate', 'severe']),
+      stress: normalizeAssessmentScore(dass21.stress, ['normal', 'mild', 'moderate', 'severe'])
+    };
+
+    if (!normalizedDass21.depression || !normalizedDass21.anxiety || !normalizedDass21.stress) {
       return res.status(400).json({
         success: false,
         message: 'Invalid DASS-21 assessment data'
       });
     }
-    
-    // Validate GAD-7 scores
-    if (typeof gad7.score !== 'number' || !gad7.severity) {
+
+    // Validate and normalize GAD-7 scores
+    const normalizedGad7 = normalizeAssessmentScore(gad7, ['normal', 'mild', 'moderate', 'severe']);
+    if (!normalizedGad7) {
       return res.status(400).json({
         success: false,
         message: 'Invalid GAD-7 assessment data'
       });
     }
-    
-    // Validate PHQ-9 scores
-    if (typeof phq9.score !== 'number' || !phq9.severity) {
+
+    // Validate and normalize PHQ-9 scores
+    const normalizedPhq9 = normalizeAssessmentScore(phq9, ['normal', 'minimal', 'mild', 'moderate', 'severe']);
+    if (!normalizedPhq9) {
       return res.status(400).json({
         success: false,
         message: 'Invalid PHQ-9 assessment data'
       });
     }
-    
+
+    const normalizedLifestyle = normalizeLifestyle(lifestyle || {});
+
     // Calculate overall risk level
-    const overallRisk = calculateOverallRisk(dass21, gad7, phq9);
+    const overallRisk = calculateOverallRisk(normalizedDass21, normalizedGad7, normalizedPhq9);
     
     // Generate personalized recommendations
-    const recommendations = generateRecommendations(dass21, gad7, phq9, processedVitals, lifestyle);
+    const recommendations = generateRecommendations(
+      normalizedDass21,
+      normalizedGad7,
+      normalizedPhq9,
+      processedVitals,
+      normalizedLifestyle
+    );
     
     // Create mental health report
     const reportData = {
       user: req.user.id,
       vitals: processedVitals,
-      lifestyle: lifestyle || {},
-      dass21,
-      gad7,
-      phq9,
+      lifestyle: normalizedLifestyle,
+      dass21: normalizedDass21,
+      gad7: normalizedGad7,
+      phq9: normalizedPhq9,
       overallRisk,
       recommendations
     };

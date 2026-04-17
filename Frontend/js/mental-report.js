@@ -187,7 +187,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+                const validationDetails = Array.isArray(errorData.errors)
+                    ? errorData.errors.join('; ')
+                    : '';
+                const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+                throw new Error(validationDetails ? `${errorMessage}: ${validationDetails}` : errorMessage);
             }
 
             const result = await response.json();
