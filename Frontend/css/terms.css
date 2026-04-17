@@ -393,55 +393,6 @@ body {
 	text-underline-offset: 4px;
 }
 
-footer {
-	background: #eeefeb;
-	color: #2e3d3a;
-	border-top: 1px solid #d8ddd8;
-	padding: 36px 0 14px;
-}
-
-footer .logo {
-	color: var(--terms-primary);
-}
-
-footer .logo h2 {
-	font-size: 1.35rem;
-}
-
-.footer-column h3 {
-	color: #253533;
-}
-
-.footer-column h3::after {
-	background: var(--terms-primary);
-}
-
-.footer-column p,
-.footer-column ul li,
-.footer-column ul li a {
-	color: #5b6865;
-	opacity: 1;
-}
-
-.footer-column ul li a:hover {
-	color: var(--terms-primary);
-}
-
-.footer-bottom {
-	border-top: 1px solid #d3d8d3;
-	color: #586663;
-}
-
-.footer-bottom a,
-.footer-links a {
-	color: var(--terms-primary-deep);
-}
-
-.footer-bottom a:hover,
-.footer-links a:hover {
-	color: var(--terms-primary);
-}
-
 @keyframes pulse-dot {
 	0% {
 		box-shadow: 0 0 0 0 rgba(31, 103, 98, 0.4);

@@ -534,7 +534,7 @@ footer {
 
 .footer-column p {
     margin-bottom: 20px;
-    opacity: 0.8;
+    opacity: 0.9;
 }
 
 .footer-column ul li {
@@ -543,7 +543,7 @@ footer {
 
 .footer-column ul li a,
 .footer-column ul li {
-    opacity: 0.8;
+    opacity: 0.85;
     transition: var(--transition);
     display: flex;
     align-items: center;
@@ -552,7 +552,6 @@ footer {
 
 .footer-column ul li a:hover {
     opacity: 1;
-    color: var(--primary-color);
 }
 
 .social-icons {
@@ -584,16 +583,16 @@ footer {
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .footer-bottom a {
-    color: rgba(183, 255, 228, 0.8);
+    color: rgba(255, 255, 255, 0.85);
     font-weight: 500;
 }
 .footer-bottom a:hover {
-    color: rgb(164, 255, 222);
-    text-decoration: none;
+    text-decoration: underline;
 }
 
 .footer-links {
@@ -602,14 +601,14 @@ footer {
 }
 
 .footer-links a {
-    color: rgba(255, 255, 255, 0.712);
+    color: rgba(255, 255, 255, 0.8);
     transition: var(--transition);
 }
 
 .footer-links a:hover {
     opacity: 1;
     text-decoration: none;
-    color: rgba(255, 255, 255, 0.947);
+    color: rgba(255, 255, 255, 0.87);
 }
 
 /* Animation Classes */
