@@ -7,7 +7,7 @@
     
     if (isProduction) {
         // Production environment
-        window.ENV_API_URL = 'https://mindspace-9a0l.onrender.com';
+        window.ENV_API_URL = 'mindspace-evbkexexh2azcgfc.centralindia-01.azurewebsites.net';
         console.log('Running in production mode');
     } else {
         // Development environment
