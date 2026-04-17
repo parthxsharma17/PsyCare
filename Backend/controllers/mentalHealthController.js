@@ -658,30 +658,31 @@ function generateReportEmailContent(report) {
         }
         
         .email-container {
-          max-width: 800px;
+          max-width: 900px;
           margin: 0 auto;
           background: white;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+          border: 2px solid;
+          border-image: linear-gradient(270deg, #0b57d0, #c80f04) 1;
         }
         
         .header {
-          background: linear-gradient(135deg, #4073c0, #5a84d4);
+          background: linear-gradient(298deg, #0b57d0, #c80f04);
           color: white;
-          padding: 30px;
+          padding: 20px;
           text-align: center;
         }
         
         .header h1 {
           font-size: 28px;
           margin-bottom: 10px;
-          display: flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
         }
         
         .header .logo {
-          font-size: 32px;
+          font-size: 30px;
         }
         
         .header p {
@@ -689,20 +690,13 @@ function generateReportEmailContent(report) {
           opacity: 0.9;
         }
         
-        .content {
-          padding: 30px;
-        }
-        
         .report-meta {
-          background: #f8fafc;
+          background: #f0eaff;
           padding: 20px;
-          border-radius: 8px;
-          margin-bottom: 30px;
-          border-left: 4px solid #4073c0;
         }
         
         .report-meta h3 {
-          color: #4073c0;
+          color: #cd3030;
           margin-bottom: 15px;
           font-size: 18px;
         }
@@ -734,8 +728,7 @@ function generateReportEmailContent(report) {
           background: linear-gradient(135deg, #ef4444, #dc2626);
           color: white;
           padding: 25px;
-          border-radius: 8px;
-          margin-bottom: 30px;
+          margin-bottom: 20px;
           text-align: center;
         }
         
@@ -767,7 +760,7 @@ function generateReportEmailContent(report) {
         }
         
         .section {
-          margin-bottom: 35px;
+          margin-bottom: 20px;
         }
         
         .section-title {
@@ -783,18 +776,15 @@ function generateReportEmailContent(report) {
         
         .scores-grid {
           display: flex;
-          gap: 20px;
-          flex-wrap: wrap;
-          margin-bottom: 25px;
+          gap: 10px;
+          padding: 0 10px;
         }
         
         .score-card {
           text-align: center;
           padding: 20px;
-          margin-bottom: 15px;
-          border-radius: 8px;
+          border-radius: 5px;
           color: white;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         
         .score-card.normal {
@@ -834,22 +824,21 @@ function generateReportEmailContent(report) {
         
         .vitals-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 15px;
-          margin-bottom: 25px;
+          grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+          gap: 10px;
+          padding: 0 10px;
         }
         
         .vital-item {
           background: #f8fafc;
-          padding: 15px;
-          border-radius: 8px;
-          border-left: 3px solid #4073c0;
-          margin-bottom: 15px;
+          padding: 10px;
+          border-radius: 5px;
+          border-left: 1px solid #ada6ff;
         }
         
         .vital-label {
           font-weight: 600;
-          color: #4073c0;
+          color: #d2258b;
           font-size: 14px;
           margin-bottom: 5px;
         }
@@ -953,21 +942,19 @@ function generateReportEmailContent(report) {
         
         .lifestyle-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 15px;
+          grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+          gap: 10px;
+          padding: 0 10px;
         }
         
         .lifestyle-item {
-          background: #f8fafc;
-          padding: 15px;
-          margin-bottom: 15px;
-          border-radius: 8px;
-          border-left: 3px solid #4073c0;
+          background: #dffffc;
+          padding: 10px;
         }
         
         .lifestyle-label {
           font-weight: 600;
-          color: #4073c0;
+          color: #cf0000;
           display: block;
           margin-bottom: 5px;
           font-size: 14px;
@@ -980,7 +967,7 @@ function generateReportEmailContent(report) {
         
         .footer {
           background: #f8fafc;
-          padding: 30px;
+          padding: 20px;
           text-align: center;
           border-top: 1px solid #e2e8f0;
         }
