@@ -1,19 +1,12 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 
 // Load environment variables FIRST
 dotenv.config();
-
-// Debug environment variables
-console.log('Environment variables loaded:');
-console.log('PORT:', process.env.PORT || 'Not set');
-console.log('NODE_ENV:', process.env.NODE_ENV || 'Not set');
-console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
-console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-console.log('GOOGLE_AI_API_KEY exists:', !!process.env.GOOGLE_AI_API_KEY);
-console.log('GOOGLE_AI_API_KEY length:', process.env.GOOGLE_AI_API_KEY ? process.env.GOOGLE_AI_API_KEY.length : 0);
 
 const authRoutes = require('./routes/authRoutes');
 const moodRoutes = require('./routes/moodRoutes');
@@ -25,18 +18,53 @@ const appointmentRoutes = require('./routes/appointmentRoutes');
 
 // Initialize express app
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Azure/Linux reverse proxy support
+app.set('trust proxy', 1);
+
+// Validate required environment variables in production
+if (isProduction) {
+  const requiredVars = ['MONGODB_URI', 'JWT_SECRET'];
+  const missingVars = requiredVars.filter((name) => !process.env[name]);
+
+  if (missingVars.length > 0) {
+    console.error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    process.exit(1);
+  }
+}
+
+if (!isProduction) {
+  console.log('Environment variables loaded');
+  console.log('PORT:', process.env.PORT || 'Not set');
+  console.log('NODE_ENV:', process.env.NODE_ENV || 'Not set');
+  console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
+  console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+  console.log('GOOGLE_AI_API_KEY exists:', !!process.env.GOOGLE_AI_API_KEY);
+}
 
 // Middleware
-app.use(express.json());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false
+}));
+
+app.use(express.json({ limit: '2mb' }));
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // Configure CORS to allow requests from multiple frontend origins
 const corsOptions = {
   origin: function(origin, callback) {
-    // Read allowed origins from .env (comma-separated), fallback to localhost
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
-      : ['http://localhost:3000'];
-
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -58,12 +86,7 @@ app.use(cors(corsOptions));
 // MongoDB connection with improved error handling
 const connectDB = async () => {
   try {
-    console.log('Attempting to connect to MongoDB...');
-    console.log('Connection URI:', process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@') : 'No URI found');
-    
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000, // 30 seconds
       socketTimeoutMS: 45000, // 45 seconds
       maxPoolSize: 10, // Maintain up to 10 socket connections
@@ -74,29 +97,15 @@ const connectDB = async () => {
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     return conn;
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    console.log('Connection details:', {
-      uri: process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@') : 'No URI found',
-      options: {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        ssl: true,
-        tlsAllowInvalidCertificates: false,
-        retryWrites: true,
-        w: 'majority',
-        connectTimeoutMS: 30000,
-        socketTimeoutMS: 45000
-      }
-    });
-    
-    // Don't exit process, let server continue without DB
-    console.log('Server will continue running, but MongoDB operations will fail');
+    console.error('❌ MongoDB connection error:', error.message);
+    if (isProduction) {
+      process.exit(1);
+    }
+
+    console.warn('Server will continue running without DB in development mode.');
     return null;
   }
 };
-
-// Connect to MongoDB
-connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -132,15 +141,23 @@ app.get('/health', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('❌ Error:', err.stack);
+  const errorMessage = isProduction ? err.message : (err.stack || err.message);
+  console.error('❌ Error:', errorMessage);
+
   res.status(500).json({ 
     status: 'error', 
-    message: err.message || 'Something went wrong on the server' 
+    message: err.message || 'Something went wrong on the server'
   });
 });
 
 // Start server
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = async () => {
+  await connectDB();
+
+  const PORT = process.env.PORT || 5001;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
+
+startServer();

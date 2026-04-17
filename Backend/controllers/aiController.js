@@ -15,16 +15,12 @@ const HARMFUL_CONTENT = [
 // Initialize Google Generative AI (Gemini)
 let genAI = null;
 let aiInitialized = false;
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Function to initialize AI service with better error handling
 function initializeAI() {
   try {
     const apiKey = process.env.GOOGLE_AI_API_KEY;
-    
-    console.log('Checking Google AI API Key...');
-    console.log('API Key exists:', !!apiKey);
-    console.log('API Key length:', apiKey ? apiKey.length : 0);
-    console.log('API Key preview:', apiKey ? `${apiKey.substring(0, 10)}...` : 'No key found');
     
     if (!apiKey) {
       console.warn('🚨 No Google AI API key provided. AI responses will use fallback mode.');
@@ -37,7 +33,10 @@ function initializeAI() {
     }
     
     genAI = new GoogleGenerativeAI(apiKey);
-    console.log('✅ Google AI initialized successfully with API key');
+    if (!isProduction) {
+      console.log('✅ Google AI initialized successfully');
+    }
+
     return true;
   } catch (error) {
     console.error('❌ Failed to initialize Google AI:', error.message);
@@ -56,7 +55,13 @@ const generateChatResponse = async (req, res) => {
     const { message, context, mood } = req.body;
     const userId = req.user.id;
 
-    console.log('AI Chat Request:', { userId, message, mood: mood?.label });
+    if (!isProduction) {
+      console.log('AI Chat Request:', {
+        userId,
+        mood: mood?.label,
+        messageLength: message?.length || 0
+      });
+    }
 
     // Validate input
     if (!message || message.trim().length === 0) {
@@ -86,14 +91,23 @@ const generateChatResponse = async (req, res) => {
     // Generate response using Google Gemini AI
     let aiResponse;
     try {
-      console.log('Generating AI response with Gemini...');
+      if (!isProduction) {
+        console.log('Generating AI response with Gemini...');
+      }
+
       aiResponse = await generateGeminiResponse(aiContext, message);
-      console.log('AI response generated successfully');
+
+      if (!isProduction) {
+        console.log('AI response generated successfully');
+      }
     } catch (aiError) {
       console.error('Gemini API Error:', aiError);
       // Fallback to rule-based response if AI fails
       aiResponse = generateFallbackResponse(message, mood);
-      console.log('Using fallback response due to AI error');
+
+      if (!isProduction) {
+        console.log('Using fallback response due to AI error');
+      }
     }
 
     // Apply safety filters
@@ -251,7 +265,6 @@ async function generateGeminiResponse(context, message) {
   }
 
   try {
-    console.log('Initializing Gemini model...');
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash", // Updated model name
       generationConfig: {
@@ -279,13 +292,14 @@ async function generateGeminiResponse(context, message) {
         }
       ]
     });
-    
-    console.log('Sending request to Gemini API...');
+
     const result = await model.generateContent(context);
     const response = await result.response;
     const text = response.text();
-    
-    console.log('✅ Gemini API response received, length:', text?.length);
+
+    if (!isProduction) {
+      console.log('✅ Gemini API response received, length:', text?.length);
+    }
     
     if (text && text.trim()) {
       return text.trim();
@@ -301,8 +315,7 @@ async function generateGeminiResponse(context, message) {
     
     // Check for specific API key errors
     if (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID')) {
-      console.error('🔑 INVALID API KEY: Please check your Google AI API key in .env file');
-      console.error('💡 Get a new API key from: https://makersuite.google.com/app/apikey');
+      console.error('🔑 INVALID API KEY: Please check your Google AI API key configuration');
     }
     
     // Check for model availability errors
@@ -311,7 +324,10 @@ async function generateGeminiResponse(context, message) {
       
       // Try with gemini-1.5-pro as fallback
       try {
-        console.log('Trying gemini-1.5-pro model...');
+        if (!isProduction) {
+          console.log('Trying gemini-1.5-pro model...');
+        }
+
         const fallbackModel = genAI.getGenerativeModel({ 
           model: "gemini-1.5-pro",
           generationConfig: {
@@ -345,7 +361,10 @@ async function generateGeminiResponse(context, message) {
         const fallbackText = fallbackResponse.text();
         
         if (fallbackText && fallbackText.trim()) {
-          console.log('✅ Fallback model response received');
+          if (!isProduction) {
+            console.log('✅ Fallback model response received');
+          }
+
           return fallbackText.trim();
         }
       } catch (fallbackError) {
@@ -445,7 +464,9 @@ async function saveConversation(userId, userMessage, aiResponse, type = 'normal'
     });
     
     await conversation.save();
-    console.log('Conversation saved successfully');
+    if (!isProduction) {
+      console.log('Conversation saved successfully');
+    }
   } catch (error) {
     console.error('Save Conversation Error:', error);
   }

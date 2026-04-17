@@ -1,13 +1,15 @@
 // Configuration for API URLs
 (function() {
     // Set environment configuration based on hostname
-    const isProduction = window.location.hostname !== 'localhost' && 
+    const isProduction = window.location.hostname !== 'localhost' &&
                          !window.location.hostname.includes('127.0.0.1') &&
                          !window.location.hostname.includes('file://');
+
+    const productionApiUrl = 'https://mindspace-evbkexexh2azcgfc.centralindia-01.azurewebsites.net';
     
     if (isProduction) {
         // Production environment
-        window.ENV_API_URL = 'mindspace-evbkexexh2azcgfc.centralindia-01.azurewebsites.net';
+        window.ENV_API_URL = productionApiUrl;
         console.log('Running in production mode');
     } else {
         // Development environment
@@ -21,6 +23,6 @@
     window.ENV_CONFIG = {
         // API URLs
         backendApiUrl: window.ENV_API_URL,
-        mlServiceUrl: window.ENV_API_URL.replace('5001', '5000') + '/predict_emotion'
+        mlServiceUrl: `${window.ENV_API_URL}/api/mood/analyze`
     };
 })();

@@ -6,6 +6,7 @@ const MentalHealthReport = require('../models/MentalHealthReport');
 const Appointment = require('../models/Appointment');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 // @desc    Get account information
 // @route   GET /api/settings/account-info  
@@ -88,10 +89,18 @@ const requestEmailChange = async (req, res) => {
 
         if (!emailResult.success) {
             console.error('Failed to send email change OTP:', emailResult.error);
+
+            if (!isDevelopment) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Could not send verification code. Please try again.'
+                });
+            }
         }
 
-        // Always return success in development mode for testing
-        console.log(`Email change OTP for ${newEmail}: ${otp}`);
+        if (isDevelopment) {
+            console.log(`Email change OTP for ${newEmail}: ${otp}`);
+        }
 
         res.status(200).json({
             success: true,
@@ -224,10 +233,18 @@ const resendEmailOTP = async (req, res) => {
 
         if (!emailResult.success) {
             console.error('Failed to resend email change OTP:', emailResult.error);
+
+            if (!isDevelopment) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Could not resend verification code. Please try again.'
+                });
+            }
         }
 
-        // Always return success in development mode for testing
-        console.log(`Resend email change OTP for ${newEmail}: ${otp}`);
+        if (isDevelopment) {
+            console.log(`Resend email change OTP for ${newEmail}: ${otp}`);
+        }
 
         res.status(200).json({
             success: true,

@@ -623,146 +623,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Update the analyzeMoodImage function to send directly to Flask ML service
+    // Send image to backend mood analysis endpoint
     async function analyzeMoodImage(formData) {
         try {
-            // Send directly to Flask ML service using config
-            const apiUrl = apiConfig.mlServiceUrl;
-            console.log('Sending image directly to Flask ML service at:', apiUrl);
-            
-            // Debug: Check what's in the FormData
-            for (let pair of formData.entries()) {
-                console.log('FormData contains:', pair[0], 
-                    pair[1] instanceof File ? 
-                    `File (${pair[1].name}, ${pair[1].type}, ${pair[1].size} bytes)` : 
-                    pair[1]);
-            }
-            
+            const authToken = localStorage.getItem('authToken');
+            const apiUrl = `${apiConfig.backendApiUrl}/api/mood/analyze`;
+
             const response = await fetch(apiUrl, {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                },
                 body: formData
             });
+
+            const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(`Flask server responded with status: ${response.status}`);
+                throw new Error(data.message || `Backend responded with status: ${response.status}`);
             }
-            
-            const data = await response.json();
-            console.log('Flask ML server response:', data);
-            
-            if (data && data.mood !== undefined && data.moodLabel) {
-                const moodValue = data.mood;
-                const moodLabel = data.moodLabel;
-                
-                // Save the mood to our MongoDB database via Node.js backend
-                const saveSuccess = await saveMoodData(moodValue, moodLabel, '', 'ai');
-                
-                if (saveSuccess) {
-                    const emoji = moodEmojis[moodLabel] || '🤔';
-                    
-                    // Display result
-                    result.innerHTML = `
-                        <div class="result-content">
-                            <span class="mood-emoji">${emoji}</span>
-                            <span>You seem to be feeling <strong>${moodLabel}</strong></span>
-                        </div>
-                    `;
-                    
-                    // Set background color based on mood
-                    result.style.backgroundColor = '#edf7ed';
-                    
-                    // Update mood history
-                    await loadMoodHistory();
-                    
-                    // Update mood tracker button
-                    updateMoodTrackerButton({ value: moodValue, label: moodLabel });
-                } else {
-                    // ML detection worked but saving failed
-                    result.innerHTML = `
-                        <div class="result-content">
-                            <span>Mood detected as ${moodLabel}, but failed to save. Please try again.</span>
-                        </div>
-                    `;
-                    result.style.backgroundColor = '#fdeded';
-                }
-            } else {
-                // Error in mood detection
-                result.innerHTML = `
-                    <div class="result-content">
-                        <span>Error: ${data ? (data.error || 'Failed to detect mood') : 'No data returned from ML server'}</span>
-                    </div>
-                `;
-                result.style.backgroundColor = '#fdeded';
+
+            if (!data || !data.success || !data.data || data.data.mood === undefined || !data.data.moodLabel) {
+                throw new Error(data?.message || 'Failed to detect mood');
             }
+
+            const moodValue = data.data.mood;
+            const moodLabel = data.data.moodLabel;
+            const emoji = moodEmojis[moodLabel] || '🤔';
+
+            result.innerHTML = `
+                <div class="result-content">
+                    <span class="mood-emoji">${emoji}</span>
+                    <span>You seem to be feeling <strong>${moodLabel}</strong></span>
+                    ${data.note ? `<br><small>${data.note}</small>` : ''}
+                </div>
+            `;
+            result.style.backgroundColor = '#edf7ed';
+
+            await loadMoodHistory();
+            updateMoodTrackerButton({ value: moodValue, label: moodLabel });
         } catch (error) {
-            console.error('Error connecting to Flask ML service:', error);
-            
-            // Fallback: Try the Node.js backend endpoint which has its own fallback
-            try {
-                console.log('Trying Node.js backend fallback...');
-                const apiUrl = `http://localhost:5001/api/mood/analyze`;
-                
-                // Create a new FormData for the backend request
-                const newFormData = new FormData();
-                
-                // Get the blob from canvas again to ensure we have fresh data
-                await new Promise(resolve => {
-                    canvas.toBlob(blob => {
-                        newFormData.append('image', blob, 'mood-capture.jpg');
-                        resolve();
-                    }, 'image/jpeg', 0.95);
-                });
-                
-                const authToken = localStorage.getItem('authToken');
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: newFormData
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Backend server responded with status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log('Backend fallback response:', data);
-                
-                if (data && data.success) {
-                    const moodValue = data.data.mood;
-                    const moodLabel = data.data.moodLabel;
-                    const emoji = moodEmojis[moodLabel] || '🤔';
-                    
-                    // Display result
-                    result.innerHTML = `
-                        <div class="result-content">
-                            <span class="mood-emoji">${emoji}</span>
-                            <span>You seem to be feeling <strong>${moodLabel}</strong></span>
-                            ${data.note ? `<br><small>${data.note}</small>` : ''}
-                        </div>
-                    `;
-                    
-                    // Set background color based on mood
-                    result.style.backgroundColor = '#edf7ed';
-                    
-                    // Update mood history
-                    await loadMoodHistory();
-                    
-                    // Update mood tracker button
-                    updateMoodTrackerButton({ value: moodValue, label: moodLabel });
-                } else {
-                    throw new Error(data.message || 'Backend fallback failed');
-                }
-            } catch (fallbackError) {
-                console.error('Backend fallback also failed:', fallbackError);
-                result.innerHTML = `
-                    <div class="result-content">
-                        <span>Error: Could not connect to mood analysis service. Please check if the ML server is running and try again.</span>
-                    </div>
-                `;
-                result.style.backgroundColor = '#fdeded';
-            }
+            console.error('Error analyzing mood:', error);
+            result.innerHTML = `
+                <div class="result-content">
+                    <span>Error: ${error.message || 'Could not analyze mood. Please try again.'}</span>
+                </div>
+            `;
+            result.style.backgroundColor = '#fdeded';
         } finally {
             // Re-enable capture button
             captureBtn.disabled = false;

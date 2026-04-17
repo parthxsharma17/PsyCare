@@ -1,4 +1,4 @@
-name: Build and deploy Node.js app to Azure Web App - mindspace
+name: Build and deploy Node.js Backend to Azure Web App - mindspace
 
 on:
   push:
@@ -6,11 +6,21 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: mindspace-backend-production
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20.x'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    defaults:
+      run:
+        working-directory: ./Backend
 
     steps:
       - uses: actions/checkout@v4
@@ -18,22 +28,39 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v4
         with:
-          node-version: '24.x'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Backend/package-lock.json
 
-      # ✅ Run commands ONLY inside Backend
-      - name: Install, build, test (Backend)
-        working-directory: ./Backend
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build backend
+        run: npm run build --if-present
+
+      - name: Run tests
+        run: npm test --if-present
+
+      - name: Prepare backend deploy package
+        working-directory: .
         run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
+          rm -rf deploy
+          mkdir deploy
+          rsync -av \
+            --exclude '.env' \
+            --exclude 'node_modules' \
+            --exclude 'MoodModel' \
+            --exclude '*.log' \
+            Backend/ deploy/
+          cd deploy
+          npm ci --omit=dev
 
-      # ✅ Upload only Backend folder
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-app
-          path: Backend
+          path: deploy
+          if-no-files-found: error
 
   deploy:
     runs-on: ubuntu-latest
@@ -47,6 +74,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-app
+          path: ./deploy
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -55,10 +83,9 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_359A2F0A21AA4DBA9A32E33CA842638D }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4AEE327AF5A142AFB1FD27C8875F4900 }}
 
-      # ✅ Deploy only Backend content
-      - name: Deploy to Azure Web App
+      - name: Deploy backend to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'mindspace'
-          slot-name: 'Production'
-          package: .
+          app-name: mindspace
+          slot-name: Production
+          package: ./deploy
