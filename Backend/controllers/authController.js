@@ -257,9 +257,10 @@ exports.login = async (req, res, next) => {
         message: 'Invalid credentials'
       });
     }
-    
+    const bypassOTP = process.env.DEV_OTP_BYPASS === 'true';
+
     // Check if user is verified
-    if (!user.isVerified) {
+    if (!user.isVerified && !bypassOTP) {
       // Generate new OTP
       const otp = user.generateOTP();
       await user.save();

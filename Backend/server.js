@@ -57,7 +57,7 @@ app.use(rateLimit({
 
 app.use(express.json({ limit: '2mb' }));
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:3000')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5500')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -70,7 +70,7 @@ const corsOptions = {
       callback(null, true);
     } else {
       console.log('Blocked by CORS - Origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

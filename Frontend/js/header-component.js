@@ -4,7 +4,7 @@
     <div class="container">
         <div class="logo">
             <i class="fas fa-brain"></i>
-            <h1>MindSpace</h1>
+            <h1>PsyCare </h1>
         </div>
         <nav>
             <ul class="nav-links"></ul>
