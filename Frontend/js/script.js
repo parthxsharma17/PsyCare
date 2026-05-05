@@ -1222,26 +1222,21 @@ function validateRegisterForm(event) {
             submitButton.textContent = originalButtonText;
 
             if (data.success) {
-                // Store email for OTP verification
-                sessionStorage.setItem('registerEmail', email);
-
-                // For development mode, handle direct OTP
-                if (data.devMode && data.devOtp) {
-                    console.log('Development OTP:', data.devOtp);
-
-                    // Store the OTP in session storage for dev testing
-                    sessionStorage.setItem('dev_otp', data.devOtp);
-
-                    // Show info notification
-                    showInfo('Dev mode: OTP has been logged to console for testing.');
+                // Store token if returned directly (OTP bypassed for college project)
+                if (data.token) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userData', JSON.stringify(data.user));
+                    showSuccess('Registration successful! Redirecting to dashboard...');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
                 } else {
-                    // Show success notification
+                    // Fallback: show OTP dialog if no token (legacy flow)
+                    sessionStorage.setItem('registerEmail', email);
                     showSuccess('Registration successful! Please verify your account with the OTP sent to your email.');
+                    switchDialog('register-dialog', 'otp-dialog');
+                    startOTPTimer();
                 }
-
-                // Switch to OTP verification dialog
-                switchDialog('register-dialog', 'otp-dialog');
-                startOTPTimer();
             } else {
                 // Show error message
                 showError(data.message || 'Registration failed. Please try again.');

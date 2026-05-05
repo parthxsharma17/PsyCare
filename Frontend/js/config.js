@@ -6,7 +6,7 @@
                          !window.location.hostname.includes('file://');
 
     
-    if (isProduction) {const productionApiUrl = 'https://psycare-api.onrender.com';
+    if (isProduction) {const productionApiUrl = 'https://psycare-18wc.onrender.com';
 
         // Production environment
         window.ENV_API_URL = productionApiUrl;
