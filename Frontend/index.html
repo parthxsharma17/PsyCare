@@ -899,12 +899,12 @@
         // Wait for config.js to load, then check if we have a proper ENV_API_URL
         setTimeout(() => {
             if (!window.ENV_API_URL) {
-                // Fallback configuration if .env loading failed
+                // Fallback configuration if config.js loading failed
                 const isProduction = window.location.hostname !== 'localhost' && 
                                    !window.location.hostname.includes('127.0.0.1');
                 
                 if (isProduction) {
-                    window.ENV_API_URL = 'PsyCare-evbkexexh2azcgfc.centralindia-01.azurewebsites.net';
+                    window.ENV_API_URL = 'https://psycare-18wc.onrender.com';
                     console.log('Running in production mode, API URL:', window.ENV_API_URL);
                 } else {
                     window.ENV_API_URL = 'http://localhost:5001';

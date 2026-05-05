@@ -1,0 +1,21 @@
+{
+  "name": "PsyCare",
+  "short_name": "PsyCare",
+  "description": "Supporting student mental health and wellbeing across higher education institutions in India.",
+  "icons": [
+    {
+      "src": "/images/ico.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/ico.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#4073c0",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/index.html"
+}
