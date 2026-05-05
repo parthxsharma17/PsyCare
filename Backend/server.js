@@ -57,20 +57,36 @@ app.use(rateLimit({
 
 app.use(express.json({ limit: '2mb' }));
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5500')
+// Always-allowed origins (hardcoded for college project deployment)
+const defaultOrigins = [
+  'https://psy-care-three.vercel.app',
+  'http://localhost:5500',
+  'http://localhost:3000',
+  'http://127.0.0.1:5500'
+];
+
+const envOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+
+console.log('CORS Allowed Origins:', allowedOrigins);
+
 // Configure CORS to allow requests from multiple frontend origins
 const corsOptions = {
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps, curl, Postman etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log('Blocked by CORS - Origin:', origin);
-      callback(null, false);
+      // For college project: allow anyway but log it
+      callback(null, true);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
