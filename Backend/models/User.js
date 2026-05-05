@@ -53,7 +53,7 @@ const UserSchema = new mongoose.Schema({
   verificationExpire: Date,
   isVerified: {
     type: Boolean,
-    default: false
+    default: true
   }
 });
 
