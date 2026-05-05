@@ -5,9 +5,9 @@
                          !window.location.hostname.includes('127.0.0.1') &&
                          !window.location.hostname.includes('file://');
 
-    const productionApiUrl = 'https://mindspace-evbkexexh2azcgfc.centralindia-01.azurewebsites.net';
     
-    if (isProduction) {
+    if (isProduction) {const productionApiUrl = 'https://psycare-api.onrender.com';
+
         // Production environment
         window.ENV_API_URL = productionApiUrl;
         console.log('Running in production mode');
